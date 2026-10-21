@@ -13,7 +13,9 @@ the admins, and an MFA rule for this client only.
 
 ## Conditional Access policy (needs Entra ID P1)
 Without it, an existing Entra session in the browser logs in silently. The policy targets **only this app**, so
-other apps are not affected. Created in **report-only** first. Exclude a break-glass account.
+other apps are not affected. `includeUsers = All` is deliberate: the app assignment decides WHO gets in, the policy
+then applies to everybody admitted - a newly assigned admin is covered automatically (a policy bound to single
+user IDs would let a new assignee in WITHOUT the MFA rule). Created in **report-only** first. Exclude a break-glass account.
 
 ```powershell
 Install-Module Microsoft.Graph.Identity.SignIns, Microsoft.Graph.Users -Scope CurrentUser   # once
@@ -26,7 +28,7 @@ $policy = @{
   state         = 'enabledForReportingButNotEnforced'
   conditions    = @{
     applications   = @{ includeApplications = @($appId) }
-    users          = @{ includeUsers = @($admin); excludeUsers = @($breakGlass) }
+    users          = @{ includeUsers = @(All); excludeUsers = @($breakGlass) }   # All = every user ADMITTED to this app (assignment)
     clientAppTypes = @('all')
   }
   grantControls   = @{ operator = 'OR'; builtInControls = @('mfa') }
