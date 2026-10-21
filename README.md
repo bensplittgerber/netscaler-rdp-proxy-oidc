@@ -64,7 +64,9 @@ redeploy simply generates a new one. Neither secret is written to disk.
 - **Two separate gates:** NetScaler decides who may *reach* the jump host (OIDC user, MFA, RDP to that host only). The
   Windows logon inside the RDP stream (any account valid on the jump host, e.g. a separate admin account) is checked by
   Windows/AD alone - NetScaler cannot see or bind it (OIDC gives NetScaler no AD password, so no SSO). To bind both:
-  nFactor OIDC + LDAP factor with RDP proxy SSO, or Entra authentication for RDP on an Entra/hybrid-joined host.
+  nFactor OIDC + LDAP factor with RDP proxy SSO. **Entra authentication for RDP (`enablerdsaadauth`) does not work
+  through the proxy:** Microsoft requires the connection name to match the target device name in Entra ID, but mstsc
+  connects to the Gateway name.
   Practical hardening: allow RDP on the jump host **only from the NetScaler SNIP** and correlate the NetScaler log
   (IdP user) with Windows event 4624 (account, source = SNIP).
 - Windows Hello / smart card **logon** to the jump host is a Windows topic (WHfB trust, NTAuth), not NetScaler.
