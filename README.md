@@ -61,7 +61,12 @@ redeploy simply generates a new one. Neither secret is written to disk.
 - With the CA policy enabled: an existing IdP session in the browser still asks for MFA.
 
 ## Limitations / notes
-- No SSO into Windows: OIDC gives NetScaler no AD password - the jump host logon is a second login (admin account).
+- **Two separate gates:** NetScaler decides who may *reach* the jump host (OIDC user, MFA, RDP to that host only). The
+  Windows logon inside the RDP stream (any account valid on the jump host, e.g. a separate admin account) is checked by
+  Windows/AD alone - NetScaler cannot see or bind it (OIDC gives NetScaler no AD password, so no SSO). To bind both:
+  nFactor OIDC + LDAP factor with RDP proxy SSO, or Entra authentication for RDP on an Entra/hybrid-joined host.
+  Practical hardening: allow RDP on the jump host **only from the NetScaler SNIP** and correlate the NetScaler log
+  (IdP user) with Windows event 4624 (account, source = SNIP).
 - Windows Hello / smart card **logon** to the jump host is a Windows topic (WHfB trust, NTAuth), not NetScaler.
 - Without a per-app Conditional Access policy an existing IdP browser session logs in **silently** (no MFA prompt).
 
