@@ -1,6 +1,6 @@
 # Gotchas (NetScaler 14.1 build 73.46)
 
-Each of these stopped a deploy or a login. The template already contains the fix.
+Each of these stopped a deploy or a login. The template already contains the fix (#6, #8, #9: expected behaviour).
 
 | # | Symptom | Cause | Fix |
 |---|---|---|---|
@@ -12,6 +12,7 @@ Each of these stopped a deploy or a login. The template already contains the fix
 | 6 | first launch: "Unknown publisher", all redirections unticked | Windows disables redirections for **unsigned** `.rdp` files | expected - user opts in per launch; NetScaler cannot sign `.rdp` files |
 | 7 | OIDC login without any MFA prompt | an existing IdP session in the browser (SSO) and no per-app policy | Conditional Access per app: MFA + sign-in frequency **every time** (`docs/ENTRA.md`) |
 | 8 | login loop: several sessions in a few seconds, each `Duration 00:00:00 LogoutMethod "TimedOut"` | stale NetScaler session cookie in an old browser tab (seen with Safari) | close the old tab / new tab; not a configuration error |
+| 9 | after an HA failover mstsc "Reconnecting" fails (5 attempts), even after a fresh browser login | Gateway/RDP Proxy sessions are not synced to the secondary; the old mstsc window presents the token from the old `.rdp` file | by design - log in again and **download the `.rdp` again**; the Windows session on the jump host survives |
 
 Things that worked as hoped:
 - **Single port:** `rdpserverprofile -rdpPort` = the Gateway port (8462) is accepted and mstsc connects through it -

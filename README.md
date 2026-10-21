@@ -34,7 +34,7 @@ way) in [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md).
 </tr>
 <tr>
 <td><a href="docs/screenshots/16-smartcard-redirected-connection-info.png"><img src="docs/screenshots/16-smartcard-redirected-connection-info.png" alt="YubiKey redirected into the session"></a><br><sub><b>5.</b> Smart card (YubiKey) redirected; connection info shows TCP and "Gateway name: Not in use"</sub></td>
-<td><a href="docs/screenshots/17-ha-failover-reconnecting.png"><img src="docs/screenshots/17-ha-failover-reconnecting.png" alt="mstsc reconnecting after HA failover"></a><br><sub><b>6.</b> HA failover: mstsc auto-reconnect fails - a new portal login brings back the same Windows session</sub></td>
+<td><a href="docs/screenshots/17-ha-failover-reconnecting.png"><img src="docs/screenshots/17-ha-failover-reconnecting.png" alt="mstsc reconnecting after HA failover"></a><br><sub><b>6.</b> HA failover: mstsc auto-reconnect fails - new portal login + new <code>.rdp</code> brings back the same Windows session</sub></td>
 </tr>
 </table>
 
@@ -79,7 +79,9 @@ redeploy simply generates a new one. Neither secret is written to disk.
 - Negative: a user without the app assignment is rejected by the IdP.
 - With the CA policy enabled: an existing IdP session in the browser still asks for MFA.
 - HA failover during a session: mstsc auto-reconnect fails (the Gateway session is not carried over to the
-  secondary, the .rdp cookie is short-lived); after a new portal login the user lands in the same Windows session.
+  secondary, the .rdp cookie is short-lived). A fresh browser login alone does not revive the old mstsc window -
+  it keeps presenting the token from the old `.rdp` file. Log in again, **download the `.rdp` again**, and the user
+  lands in the same Windows session.
 
 ## Limitations / notes
 - **Two separate gates:** NetScaler decides who may *reach* the jump host (OIDC user, MFA, RDP to that host only). The
