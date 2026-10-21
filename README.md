@@ -19,6 +19,25 @@ mstsc ──TLS, same port 8462──> RDP Proxy ──3389──> jump01.exampl
 Default **DENY**; two allow rules (HTTP `/rdpproxy/<target>` + TCP target:3389) bound to an AAA group that every
 OIDC user of this Gateway lands in. Redirections (clipboard, drives, printers, smart cards, ...) per client profile.
 
+## Screenshots
+Windows 11 client against NetScaler 14.1 - names and IDs replaced by placeholders. More (incl. the errors on the
+way) in [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md).
+
+<table>
+<tr>
+<td width="50%"><a href="docs/screenshots/06-browser-download-rdp-file.png"><img src="docs/screenshots/06-browser-download-rdp-file.png" alt="Bookmark click downloads jump01.rdp"></a><br><sub><b>1.</b> The bookmark downloads <code>jump01.rdp</code> (pointing to the Gateway, not to the jump host)</sub></td>
+<td width="50%"><a href="docs/screenshots/07-mstsc-open-rdp-file-warning.png"><img src="docs/screenshots/07-mstsc-open-rdp-file-warning.png" alt="Windows warning when opening an RDP file"></a><br><sub><b>2.</b> Windows 11 warns before opening any <code>.rdp</code> file (one-time opt-in per user)</sub></td>
+</tr>
+<tr>
+<td><a href="docs/screenshots/11-mstsc-all-redirections-on.png"><img src="docs/screenshots/11-mstsc-all-redirections-on.png" alt="mstsc with all redirections ticked"></a><br><sub><b>3.</b> Unsigned file: the user ticks the redirections - "Remote computer" is the Gateway</sub></td>
+<td><a href="docs/screenshots/15-session-via-gateway.png"><img src="docs/screenshots/15-session-via-gateway.png" alt="RDP session through the Gateway port"></a><br><sub><b>4.</b> Session on the jump host through the single Gateway port 8462</sub></td>
+</tr>
+<tr>
+<td><a href="docs/screenshots/16-smartcard-redirected-connection-info.png"><img src="docs/screenshots/16-smartcard-redirected-connection-info.png" alt="YubiKey redirected into the session"></a><br><sub><b>5.</b> Smart card (YubiKey) redirected; connection info shows TCP and "Gateway name: Not in use"</sub></td>
+<td><a href="docs/screenshots/17-ha-failover-reconnecting.png"><img src="docs/screenshots/17-ha-failover-reconnecting.png" alt="mstsc reconnecting after HA failover"></a><br><sub><b>6.</b> HA failover: mstsc auto-reconnect fails - a new portal login brings back the same Windows session</sub></td>
+</tr>
+</table>
+
 ## Contents
 | Path | |
 |---|---|
