@@ -21,14 +21,13 @@ user IDs would let a new assignee in WITHOUT the MFA rule). Created in **report-
 Install-Module Microsoft.Graph.Identity.SignIns, Microsoft.Graph.Users -Scope CurrentUser   # once
 Connect-MgGraph -Scopes Policy.ReadWrite.ConditionalAccess, Policy.Read.All, Application.Read.All, User.Read.All
 $appId      = '<CLIENT_ID>'
-$admin      = (Get-MgUser -UserId 'admin@example.org').Id
 $breakGlass = (Get-MgUser -UserId 'breakglass@example.onmicrosoft.com').Id
 $policy = @{
   displayName   = 'CA - RDP admin gateway - MFA every time'
   state         = 'enabledForReportingButNotEnforced'
   conditions    = @{
     applications   = @{ includeApplications = @($appId) }
-    users          = @{ includeUsers = @(All); excludeUsers = @($breakGlass) }   # All = every user ADMITTED to this app (assignment)
+    users          = @{ includeUsers = @('All'); excludeUsers = @($breakGlass) }   # All = every user ADMITTED to this app (assignment)
     clientAppTypes = @('all')
   }
   grantControls   = @{ operator = 'OR'; builtInControls = @('mfa') }
