@@ -59,6 +59,8 @@ redeploy simply generates a new one. Neither secret is written to disk.
 - Smart card redirection: YubiKey visible inside the session (e.g. Yubico Authenticator).
 - Negative: a user without the app assignment is rejected by the IdP.
 - With the CA policy enabled: an existing IdP session in the browser still asks for MFA.
+- HA failover during a session: mstsc auto-reconnect fails (the Gateway session is not carried over to the
+  secondary, the .rdp cookie is short-lived); after a new portal login the user lands in the same Windows session.
 
 ## Limitations / notes
 - **Two separate gates:** NetScaler decides who may *reach* the jump host (OIDC user, MFA, RDP to that host only). The
