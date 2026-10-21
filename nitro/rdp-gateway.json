@@ -1,0 +1,128 @@
+{
+  "nsip": "https://ns01.example.org",
+
+  "steps": [
+    { "comment": "RDP-only Gateway rdp.example.org:8462 -> jump01.example.org (192.0.2.20), OIDC login (Entra ID example) with a DEDICATED app registration",
+      "note": "Deploy with netscaler-nitro Deploy-NsObjects.ps1. Env: $env:OIDC_RDP_CLIENT_SECRET (masked prompt) + $env:RDP_PSK (random, generated per deploy, never shown). Prereq: a frontend SSL profile (here ssl_prof_frontend, TLS 1.2/1.3). Server certificate: bind after this file (e.g. netscaler-acme). Replace every placeholder: rdp.example.org, 192.0.2.10 (VIP), jump01.example.org / 192.0.2.20 (target), <TENANT_ID>, <CLIENT_ID>." },
+
+    { "comment": "Feature RDP Proxy (included in the Express/freemium license on 14.1)" },
+    { "resource": "nsfeature", "action": "enable", "data": { "feature": [ "RDPProxy" ] } },
+
+    { "comment": "RDP client profile = content of the generated .rdp file. rdpfilename MUST end in .rdp (NITRO 839). PSK is mandatory on 14.1 (same value as the server profile). rdpurloverride DISABLE: the target cannot be changed in the URL. Redirections: adjust to your policy; smart cards via rdpcustomparams." },
+    { "resource": "rdpclientprofile", "data": {
+        "name": "rdp_cp",
+        "rdphost": "rdp.example.org",
+        "rdplistener": "rdp.example.org:8462",
+        "rdpurloverride": "DISABLE",
+        "redirectclipboard": "ENABLE",
+        "redirectdrives": "ENABLE",
+        "redirectprinters": "ENABLE",
+        "redirectcomports": "ENABLE",
+        "redirectpnpdevices": "ENABLE",
+        "audiocapturemode": "ENABLE",
+        "videoplaybackmode": "ENABLE",
+        "multimonitorsupport": "ENABLE",
+        "keyboardhook": "InFullScreenMode",
+        "rdpcustomparams": "redirectsmartcards:i:1",
+        "addusernameinrdpfile": "NO",
+        "rdpfilename": "jump01.rdp",
+        "rdpcookievalidity": 60,
+        "psk": "${env:RDP_PSK}" } },
+
+    { "comment": "RDP server profile = RDP listener on the Gateway VIP. rdpport = Gateway port works (single port, verified on 14.1 73.46) - one firewall/NAT rule (TCP only). PSK mandatory (NITRO 1095 'Required argument missing [psk]'). A bound server profile cannot be changed - unbind, rm, re-add." },
+    { "resource": "rdpserverprofile", "data": {
+        "name": "rdp_sp",
+        "rdpip": "192.0.2.10",
+        "rdpport": 8462,
+        "psk": "${env:RDP_PSK}" } },
+
+    { "comment": "OIDC (Entra ID example): dedicated app registration, redirect URI (Web) https://rdp.example.org:8462/oauth/login, assignment required. defaultauthenticationgroup puts every user who logs in through this action into grp_rdp - the authorization rules bind to that group (see below)." },
+    { "resource": "authenticationoauthaction", "data": {
+        "name": "oauth_act_rdp",
+        "oauthtype": "GENERIC",
+        "metadataurl": "https://login.microsoftonline.com/<TENANT_ID>/v2.0/.well-known/openid-configuration",
+        "authorizationendpoint": "https://login.microsoftonline.com/<TENANT_ID>/oauth2/v2.0/authorize",
+        "tokenendpoint": "https://login.microsoftonline.com/<TENANT_ID>/oauth2/v2.0/token",
+        "certendpoint": "https://login.microsoftonline.com/<TENANT_ID>/discovery/v2.0/keys",
+        "issuer": "https://login.microsoftonline.com/<TENANT_ID>/v2.0",
+        "audience": "<CLIENT_ID>",
+        "clientid": "<CLIENT_ID>",
+        "clientsecret": "${env:OIDC_RDP_CLIENT_SECRET}",
+        "usernamefield": "preferred_username",
+        "defaultauthenticationgroup": "grp_rdp",
+        "authentication": "ENABLED",
+        "pkce": "ENABLED",
+        "tokenendpointauthmethod": "client_secret_post",
+        "allowedalgorithms": [ "RS256" ] } },
+    { "resource": "authenticationpolicy",
+      "data": { "name": "auth_pol_rdp", "rule": "true", "action": "oauth_act_rdp" } },
+
+    { "comment": "AAA vserver (non-addressable, nFactor) + authentication profile" },
+    { "resource": "authenticationvserver",
+      "data": { "name": "aaa_gw_rdp", "servicetype": "SSL", "ipv46": "0.0.0.0", "port": 0 } },
+    { "resource": "authenticationvserver_authenticationpolicy_binding", "data": {
+        "name": "aaa_gw_rdp", "policy": "auth_pol_rdp", "priority": 100, "gotopriorityexpression": "NEXT" } },
+    { "resource": "authenticationauthnprofile",
+      "data": { "name": "authnprof_gw_rdp", "authnvsname": "aaa_gw_rdp" } },
+
+    { "comment": "Session: no ICA, clientless portal with the RDP bookmark only, default DENY. usemip NS + useiip OFF (both together): otherwise the session inherits the global UseIIP NOSPILLOVER and fails with 'No IntranetIP available'." },
+    { "resource": "vpnsessionaction", "data": {
+        "name": "sess_act_rdp",
+        "transparentinterception": "OFF", "defaultauthorizationaction": "DENY",
+        "icaproxy": "OFF", "clientlessvpnmode": "ON", "clientchoices": "OFF", "usemip": "NS", "useiip": "OFF",
+        "rdpclientprofilename": "rdp_cp" } },
+    { "resource": "vpnsessionpolicy",
+      "data": { "name": "sess_pol_rdp", "rule": "true", "action": "sess_act_rdp" } },
+
+    { "comment": "Authorization is checked TWICE: on the HTTP request /rdpproxy/<target> to the Gateway ('Not a privileged User' without it) and on the RDP connection to the target :3389. Two separate rules - an HTTP expression on the pure TCP flow could evaluate UNDEF." },
+    { "resource": "authorizationpolicy", "data": {
+        "name": "authz_rdp_url",
+        "rule": "HTTP.REQ.URL.PATH.EQ(\"/rdpproxy/jump01.example.org\")",
+        "action": "ALLOW" } },
+    { "resource": "authorizationpolicy", "data": {
+        "name": "authz_rdp_jump01",
+        "rule": "CLIENT.IP.DST.EQ(192.0.2.20) && CLIENT.TCP.DSTPORT.EQ(3389)",
+        "action": "ALLOW" } },
+
+    { "comment": "Authorization policies bind ONLY to AAA users/groups - NOT to a vpn vserver (vpnvserver_authorizationpolicy_binding: NITRO 1232) and NOT VPN-global (vpnglobal_authorizationpolicy_binding: 1232)." },
+    { "resource": "aaagroup", "data": { "groupname": "grp_rdp" } },
+    { "resource": "aaagroup_authorizationpolicy_binding", "data": {
+        "groupname": "grp_rdp", "policy": "authz_rdp_url", "priority": 90, "type": "REQUEST" } },
+    { "resource": "aaagroup_authorizationpolicy_binding", "data": {
+        "groupname": "grp_rdp", "policy": "authz_rdp_jump01", "priority": 100, "type": "REQUEST" } },
+
+    { "comment": "Bookmark = the only resource in the portal" },
+    { "resource": "vpnurl", "data": {
+        "urlname": "bm_rdp_jump01", "linkname": "jump01 (RDP)", "actualurl": "rdp://jump01.example.org" } },
+
+    { "comment": "Gateway vserver (DOWN until a server certificate is bound)" },
+    { "resource": "vpnvserver", "data": {
+        "name": "gw_rdp", "servicetype": "SSL", "ipv46": "192.0.2.10", "port": 8462,
+        "icaonly": "OFF", "dtls": "OFF", "downstateflush": "DISABLED", "listenpolicy": "NONE",
+        "rdpserverprofilename": "rdp_sp",
+        "authnprofile": "authnprof_gw_rdp" } },
+    { "resource": "vpnvserver_vpnsessionpolicy_binding", "data": {
+        "name": "gw_rdp", "policy": "sess_pol_rdp",
+        "priority": 100, "gotopriorityexpression": "NEXT", "bindpoint": "REQUEST" } },
+    { "resource": "vpnvserver_vpnurl_binding", "data": { "name": "gw_rdp", "urlname": "bm_rdp_jump01" } },
+    { "resource": "vpnvserver_vpnportaltheme_binding", "data": { "name": "gw_rdp", "portaltheme": "RfWebUI" } },
+
+    { "comment": "Built-in cache policies (as on any Gateway)" },
+    { "resource": "vpnvserver_cachepolicy_binding", "data": { "name": "gw_rdp",
+        "policy": "_cacheTCVPNStaticObjects", "priority": 10, "gotopriorityexpression": "END", "bindpoint": "REQUEST" } },
+    { "resource": "vpnvserver_cachepolicy_binding", "data": { "name": "gw_rdp",
+        "policy": "_cacheOCVPNStaticObjects", "priority": 20, "gotopriorityexpression": "END", "bindpoint": "REQUEST" } },
+    { "resource": "vpnvserver_cachepolicy_binding", "data": { "name": "gw_rdp",
+        "policy": "_cacheVPNStaticObjects", "priority": 30, "gotopriorityexpression": "END", "bindpoint": "REQUEST" } },
+    { "resource": "vpnvserver_cachepolicy_binding", "data": { "name": "gw_rdp",
+        "policy": "_mayNoCacheReq", "priority": 40, "gotopriorityexpression": "END", "bindpoint": "REQUEST" } },
+    { "resource": "vpnvserver_cachepolicy_binding", "data": { "name": "gw_rdp",
+        "policy": "_cacheWFStaticObjects", "priority": 10, "gotopriorityexpression": "END", "bindpoint": "RESPONSE" } },
+    { "resource": "vpnvserver_cachepolicy_binding", "data": { "name": "gw_rdp",
+        "policy": "_noCacheRest", "priority": 20, "gotopriorityexpression": "END", "bindpoint": "RESPONSE" } },
+
+    { "comment": "SSL: frontend profile on the Gateway and its AAA vserver" },
+    { "resource": "sslvserver", "method": "PUT", "data": { "vservername": "gw_rdp", "sslprofile": "ssl_prof_frontend" } },
+    { "resource": "sslvserver", "method": "PUT", "data": { "vservername": "aaa_gw_rdp", "sslprofile": "ssl_prof_frontend" } }
+  ]
+}

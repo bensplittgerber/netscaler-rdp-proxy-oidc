@@ -1,0 +1,5 @@
+# never commit secrets
+*.pass
+*.key
+*.pfx
+*.pem
