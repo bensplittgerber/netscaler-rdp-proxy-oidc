@@ -46,6 +46,7 @@ way) in [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md).
 | [`docs/ENTRA.md`](docs/ENTRA.md) | Entra app registration + **Conditional Access policy per app** (MFA, sign-in frequency every time) via Microsoft Graph PowerShell |
 | [`docs/GOTCHAS.md`](docs/GOTCHAS.md) | everything that is not (or wrongly) in the docs - found the hard way on 14.1 |
 | [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) | the flow and the errors on the way, as screenshots |
+| [`CHANGELOG.md`](CHANGELOG.md) | releases |
 
 ## Requirements
 - NetScaler **14.1** (verified on 14.1 build 73.46, Express/freemium license - RDP Proxy is included), standalone or HA.
@@ -57,7 +58,8 @@ way) in [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md).
 ## Deploy
 1. Replace the placeholders in `nitro/rdp-gateway.json`: `ns01.example.org`, `rdp.example.org`, `192.0.2.10`,
    `jump01.example.org` / `192.0.2.20`, `<TENANT_ID>`, `<CLIENT_ID>` (and names/redirections to taste).
-2. PowerShell 7 with [netscaler-nitro](https://github.com/bensplittgerber/netscaler-nitro) next to this repo:
+2. PowerShell 7 with [netscaler-nitro](https://github.com/bensplittgerber/netscaler-nitro) **v1.2.0 or later** next
+   to this repo:
 ```powershell
 $env:OIDC_RDP_CLIENT_SECRET = Read-Host 'OIDC client secret' -MaskInput
 $env:RDP_PSK = -join ([Security.Cryptography.RandomNumberGenerator]::GetBytes(16) | % { $_.ToString('x2') })   # never shown
