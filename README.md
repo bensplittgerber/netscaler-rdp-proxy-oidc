@@ -5,13 +5,13 @@ example, any OIDC IdP works the same way), get a portal with exactly one RDP boo
 **Gateway** - NetScaler RDP Proxy forwards to the jump host. The jump host is never reachable from outside, and only
 one TCP port is published.
 
-![Portal with the RDP bookmark](docs/screenshots/04-portal-bookmark.png)
+![Portal with the RDP bookmark](docs/screenshots/18-portal-desktops-only.png)
 
 ## Flow
 ```
 Browser ──https://rdp.example.org:8462──> gw_rdp (NetScaler)
    │  nFactor: OIDC login (dedicated app, assignment required, Conditional Access per app)
-   │  portal (RfWebUI, clientless, no ICA) -> bookmark "jump01 (RDP)"
+   │  portal (theme th_rdp = RfWebUI without Favorites, clientless, no ICA) -> bookmark "jump01 (RDP)"
    └─ click -> jump01.rdp (points to rdp.example.org:8462, NOT to the jump host)
 mstsc ──TLS, same port 8462──> RDP Proxy ──3389──> jump01.example.org
    └─ Windows logon on the jump host with the AD admin account (OIDC gives NetScaler no AD password - intended)
@@ -42,6 +42,7 @@ way) in [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md).
 | Path | |
 |---|---|
 | [`nitro/rdp-gateway.json`](nitro/rdp-gateway.json) | complete NetScaler config as a [netscaler-nitro](https://github.com/bensplittgerber/netscaler-nitro) `Deploy-NsObjects.ps1` file - placeholders |
+| [`theme/th_rdp/`](theme/th_rdp) | portal theme files (RfWebUI based): hide Favorites + personal bookmarks, start on Desktops |
 | [`docs/ENTRA.md`](docs/ENTRA.md) | Entra app registration + **Conditional Access policy per app** (MFA, sign-in frequency every time) via Microsoft Graph PowerShell |
 | [`docs/GOTCHAS.md`](docs/GOTCHAS.md) | everything that is not (or wrongly) in the docs - found the hard way on 14.1 |
 | [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) | the flow and the errors on the way, as screenshots |
@@ -65,14 +66,21 @@ $cred = Get-Credential nsroot
 ..\netscaler-nitro\scripts\Deploy-NsObjects.ps1 -ConfigFile .\nitro\rdp-gateway.json -Credential $cred
 Remove-Item Env:OIDC_RDP_CLIENT_SECRET, Env:RDP_PSK
 ```
-3. Bind the server certificate to `gw_rdp` **and** `aaa_gw_rdp`; the Gateway goes UP.
-4. Create the Conditional Access policy (report-only first, then enable) - `docs/ENTRA.md`.
+3. Copy the portal theme files - NITRO only creates the empty theme `th_rdp` (to the primary; HA syncs the theme
+   directory to the secondary, verified on 14.1 73.46):
+```powershell
+scp .\theme\th_rdp\css\theme.css nsroot@ns01.example.org:/var/netscaler/logon/themes/th_rdp/css/theme.css
+scp .\theme\th_rdp\script.js     nsroot@ns01.example.org:/var/netscaler/logon/themes/th_rdp/script.js
+```
+4. Bind the server certificate to `gw_rdp` **and** `aaa_gw_rdp`; the Gateway goes UP.
+5. Create the Conditional Access policy (report-only first, then enable) - `docs/ENTRA.md`.
 
 The PSK only signs the RDP connection between the Gateway and its RDP listener - nobody needs to know it; a
 redeploy simply generates a new one. Neither secret is written to disk.
 
 ## Test
-- Browser login -> portal with the bookmark -> `jump01.rdp` -> mstsc -> session on the jump host.
+- Browser login -> portal opens on **Desktops** (no Favorites tab, Details shows only "Open") -> `jump01.rdp` ->
+  mstsc -> session on the jump host.
 - Windows shows **"Unknown publisher"** and unticks **all redirections** on the first launch of an unsigned `.rdp`
   file - the user opts in per launch (NetScaler cannot sign `.rdp` files).
 - Smart card redirection: YubiKey visible inside the session (e.g. Yubico Authenticator).

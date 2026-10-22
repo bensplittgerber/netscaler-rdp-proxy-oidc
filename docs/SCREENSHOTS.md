@@ -6,7 +6,8 @@ by placeholders (`rdp.example.org`, `jump01`, `user@example.org`).
 ## Working flow
 | Step | |
 |---|---|
-| Portal (RfWebUI, clientless) with the single bookmark | ![](screenshots/04-portal-bookmark.png) |
+| Portal (theme `th_rdp`, RfWebUI based, clientless): opens on Desktops with the single bookmark, no Favorites tab | ![](screenshots/18-portal-desktops-only.png) |
+| Details of the bookmark: only "Open" - "Add To Favorites" is hidden (blocked by the firmware, GOTCHAS #10) | ![](screenshots/19-details-open-only.png) |
 | Click on the bookmark downloads `jump01.rdp` - the browser flags `.rdp` files as potentially harmful ("Keep") | ![](screenshots/06-browser-download-rdp-file.png) |
 | Windows 11 warns before opening any `.rdp` file (one-time opt-in per user account) | ![](screenshots/07-mstsc-open-rdp-file-warning.png) |
 | Unsigned `.rdp`: "Unknown publisher", Windows unticks all redirections on the first launch | ![](screenshots/08-mstsc-unknown-publisher-redirections-off.png) |

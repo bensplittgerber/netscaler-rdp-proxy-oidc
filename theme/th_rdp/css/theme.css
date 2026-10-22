@@ -1,0 +1,6 @@
+/* th_rdp (base theme RfWebUI): favorites and personal bookmarks are blocked by the built-in
+   ns-web-default-appfw-profile (API spec ns-web-spec: subscription.pl, PersonalBookmark.pl) -
+   hide every control that uses them. See docs/GOTCHAS.md #10. */
+#appInfoAddButton, #appInfoRemoveBtn,
+#myAppsBtn, #myAppsBtnPhone,
+.personal_bm_dropdown, .personal_bm_addbox { display: none !important; }

@@ -95,6 +95,9 @@
     { "resource": "vpnurl", "data": {
         "urlname": "bm_rdp_jump01", "linkname": "jump01 (RDP)", "actualurl": "rdp://jump01.example.org" } },
 
+    { "comment": "Portal theme based on RfWebUI: theme/th_rdp/ (css/theme.css + script.js) hides Favorites and personal bookmarks - the built-in ns-web-spec API protection blocks them ('Cannot Add App', GOTCHAS #10). NITRO creates the theme only; copy the two files after the deploy (README)." },
+    { "resource": "vpnportaltheme", "data": { "name": "th_rdp", "basetheme": "RfWebUI" } },
+
     { "comment": "Gateway vserver (DOWN until a server certificate is bound)" },
     { "resource": "vpnvserver", "data": {
         "name": "gw_rdp", "servicetype": "SSL", "ipv46": "192.0.2.10", "port": 8462,
@@ -105,7 +108,7 @@
         "name": "gw_rdp", "policy": "sess_pol_rdp",
         "priority": 100, "gotopriorityexpression": "NEXT", "bindpoint": "REQUEST" } },
     { "resource": "vpnvserver_vpnurl_binding", "data": { "name": "gw_rdp", "urlname": "bm_rdp_jump01" } },
-    { "resource": "vpnvserver_vpnportaltheme_binding", "data": { "name": "gw_rdp", "portaltheme": "RfWebUI" } },
+    { "resource": "vpnvserver_vpnportaltheme_binding", "data": { "name": "gw_rdp", "portaltheme": "th_rdp" } },
 
     { "comment": "Built-in cache policies (as on any Gateway)" },
     { "resource": "vpnvserver_cachepolicy_binding", "data": { "name": "gw_rdp",
