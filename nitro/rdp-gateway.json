@@ -110,7 +110,7 @@
     { "resource": "vpnvserver_vpnurl_binding", "data": { "name": "gw_rdp", "urlname": "bm_rdp_jump01" } },
     { "resource": "vpnvserver_vpnportaltheme_binding", "data": { "name": "gw_rdp", "portaltheme": "th_rdp" } },
 
-    { "comment": "Built-in cache policies (as on any Gateway)" },
+    { "comment": "Built-in cache policies (as on any Gateway). 14.1 binds them automatically when the vserver is created - Deploy-NsObjects reports [EXISTS] (found before add) - harmless, kept explicit." },
     { "resource": "vpnvserver_cachepolicy_binding", "data": { "name": "gw_rdp",
         "policy": "_cacheTCVPNStaticObjects", "priority": 10, "gotopriorityexpression": "END", "bindpoint": "REQUEST" } },
     { "resource": "vpnvserver_cachepolicy_binding", "data": { "name": "gw_rdp",

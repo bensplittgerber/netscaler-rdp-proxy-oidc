@@ -66,11 +66,13 @@ $cred = Get-Credential nsroot
 ..\netscaler-nitro\scripts\Deploy-NsObjects.ps1 -ConfigFile .\nitro\rdp-gateway.json -Credential $cred
 Remove-Item Env:OIDC_RDP_CLIENT_SECRET, Env:RDP_PSK
 ```
-3. Copy the portal theme files - NITRO only creates the empty theme `th_rdp` (to the primary; HA syncs the theme
-   directory to the secondary, verified on 14.1 73.46):
+3. Copy the portal theme files - NITRO only creates the empty theme `th_rdp`. Copy to the primary, then
+   `save ns config` there: HA syncs the theme directory to the secondary **on the save**, not on the copy (verified
+   on 14.1 73.46 - without the save the secondary keeps empty files and shows the plain RfWebUI after a failover):
 ```powershell
 scp .\theme\th_rdp\css\theme.css nsroot@ns01.example.org:/var/netscaler/logon/themes/th_rdp/css/theme.css
 scp .\theme\th_rdp\script.js     nsroot@ns01.example.org:/var/netscaler/logon/themes/th_rdp/script.js
+ssh nsroot@ns01.example.org "save ns config"
 ```
 4. Bind the server certificate to `gw_rdp` **and** `aaa_gw_rdp`; the Gateway goes UP.
 5. Create the Conditional Access policy (report-only first, then enable) - `docs/ENTRA.md`.
